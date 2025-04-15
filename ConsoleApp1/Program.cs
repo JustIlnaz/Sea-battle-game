@@ -15,8 +15,12 @@ class SeaBattle
         InitializeBoards();
 
         // Расстановка кораблей
+        Console.WriteLine("Игрок 1, расставьте свои корабли.");
         PlaceShips(player1Board);
+        Console.Clear();
+        Console.WriteLine("Игрок 2, расставьте свои корабли.");
         PlaceShips(player2Board);
+        Console.Clear();
 
         bool player1Turn = true;
         bool gameOver = false;
@@ -77,13 +81,12 @@ class SeaBattle
         Console.WriteLine("\nРасставьте свои корабли (3 штуки).");
         for (int i = 0; i < 3; i++)
         {
-            Console.Write($"Введите координаты корабля {i + 1} (строка столбец): ");
-            string input = Console.ReadLine();
-            string[] coords = ConvertToNumbers(input); // Преобразование в числа
+            string input = GetValidInput("Введите координаты корабля (например, A1)", ConvertToNumbers);
+            string[] coords = input.Split(' ');
             int row = int.Parse(coords[0]);
             int col = int.Parse(coords[1]);
 
-            if (board[row, col] == '~')
+            if (row >= 0 && row < 5 && col >= 0 && col < 5 && board[row, col] == '~')
             {
                 board[row, col] = 'S';
             }
@@ -97,28 +100,36 @@ class SeaBattle
 
     static bool MakeMove(char[,] enemyBoard, char[,] hitsBoard)
     {
-        Console.Write("Введите координаты выстрела (строка столбец): ");
-        string input = Console.ReadLine();
-        string[] coords = ConvertToNumbers(input); // Преобразование в числа
+        string input = GetValidInput("Введите координаты выстрела (например, A1)", ConvertToNumbers);
+        string[] coords = input.Split(' ');
         int row = int.Parse(coords[0]);
         int col = int.Parse(coords[1]);
 
-        if (enemyBoard[row, col] == 'S')
+        if (row >= 0 && row < 5 && col >= 0 && col < 5)
         {
-            Console.WriteLine("Попадание!");
-            hitsBoard[row, col] = 'X'; // Отметка о попадании
-            return true; // Вернуть true, если попали
-        }
-        else if (enemyBoard[row, col] == '~')
-        {
-            Console.WriteLine("Промах!");
-            hitsBoard[row, col] = 'O'; // Отметка о промахе
-            return false; // Вернуть false, если промазали
+            if (enemyBoard[row, col] == 'S')
+            {
+                Console.WriteLine("Попадание!");
+                hitsBoard[row, col] = 'X'; // Отметка о попадании
+                enemyBoard[row, col] = 'X'; // Уничтожение корабля
+                return true; // Вернуть true, если попали
+            }
+            else if (enemyBoard[row, col] == '~')
+            {
+                Console.WriteLine("Промах!");
+                hitsBoard[row, col] = 'O'; // Отметка о промахе
+                return false; // Вернуть false, если промазали
+            }
+            else
+            {
+                Console.WriteLine("Вы уже стреляли сюда. Попробуйте снова.");
+                return false; // Вернуть false, если повторный выстрел
+            }
         }
         else
         {
-            Console.WriteLine("Вы уже стреляли сюда. Попробуйте снова.");
-            return false; // Вернуть false, если повторный выстрел
+            Console.WriteLine("Неверные координаты. Попробуйте снова.");
+            return false;
         }
     }
 
@@ -163,18 +174,46 @@ class SeaBattle
     }
 
     // Функция преобразования букв в цифры
-    static string[] ConvertToNumbers(string input)
+    static string ConvertToNumbers(string input)
     {
-        string[] coords = input.ToUpper().Split(' ');
-        if (coords.Length != 2)
+        input = input.ToUpper();
+        if (input.Length != 2 || !char.IsLetter(input[0]) || !char.IsDigit(input[1]))
         {
-            throw new ArgumentException("Неверный формат координат. Например: A1");
+            throw new ArgumentException("Неверный формат координат. Пример: A1");
         }
 
-        // Преобразование буквы в число
-        int row = int.Parse(coords[0]); // Строка остается числом
-        int col = coords[1][0] - 'A'; // Преобразование буквы в число
+        char letter = input[0];
+        char numberChar = input[1];
 
-        return new string[] { row.ToString(), col.ToString() };
+        // Преобразование буквы в столбец (0-4)
+        int col = letter - 'A';
+
+        // Преобразование цифры в строку (0-4)
+        int row = int.Parse(numberChar.ToString()) - 1;
+
+        if (row < 0 || row >= 5 || col < 0 || col >= 5)
+        {
+            throw new ArgumentException("Координаты выходят за пределы доски.");
+        }
+
+        return $"{row} {col}";
+    }
+
+    // Функция для безопасного ввода данных
+    static string GetValidInput(string prompt, Func<string, string> validator)
+    {
+        while (true)
+        {
+            try
+            {
+                Console.Write(prompt + ": ");
+                string input = Console.ReadLine();
+                return validator(input); // Попытка преобразовать ввод
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Ошибка: " + ex.Message);
+            }
+        }
     }
 }
